@@ -37,6 +37,7 @@ make test-unit         # unit dan concurrency test pada service package
 make test-integration  # HTTP integration test pada handler package
 make test-race         # seluruh test dengan Go race detector
 make coverage          # coverage.out dan ringkasan per function
+go test ./internal/services -run '^$' -bench CalculateAdminFee -benchmem
 ```
 
 Equivalent commands tanpa Make:
@@ -152,6 +153,7 @@ ok      example.com/disbursement/internal/handlers      1.073s
 - `limit=0` dan `limit=-1` sekarang ditolak dengan HTTP 422 dan pesan `limit must be between 1 and 100` sebelum perhitungan `total_pages`.
 - `page=999999` valid dan mengembalikan list kosong tanpa panic, dengan total keseluruhan tetap tersedia.
 - `total_pages` sekarang dihitung dengan integer `int64` setelah limit tervalidasi, sehingga tidak ada division by zero atau metadata limit yang berbeda dari limit query.
+- Case `total_pages_rounds_up` membuktikan total tiga item dengan `limit=2` menghasilkan `total_pages=2`.
 
 **Command:**
 ```sh
@@ -208,6 +210,10 @@ Test lulus lima kali dan tidak ada warning dari race detector. HTTP integration 
 ## AI Assistance and Verification
 
 AI digunakan untuk membantu reconnaissance, menyusun test cases, mengimplementasikan test harness, menganalisis output, dan mengusulkan minimal fixes. Setiap assertion diverifikasi terhadap business contract dan dijalankan langsung pada repository ini. Validitas test dibuktikan dengan red-before-fix dan green-after-fix, focused repeated concurrency runs, real JWT middleware, repository memory asli untuk integration tests, serta race detector; tidak ada output atau angka coverage yang dibuat-buat.
+
+## Continuous Integration
+
+`.github/workflows/test.yml` menjalankan `make test` dan `make test-race` pada setiap push dan pull request menggunakan versi Go dari `go.mod`. Workflow baru benar-benar berjalan setelah repository di-push ke GitHub; workflow tidak dieksekusi oleh perubahan lokal ini.
 
 ## Remaining Limitations
 
