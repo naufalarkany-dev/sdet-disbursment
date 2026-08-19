@@ -1,0 +1,17 @@
+# Environment
+.env
+.env.*
+!.env.example
+
+# Go build and test artifacts
+bin/
+*.exe
+*.test
+coverage.out
+*.coverprofile
+
+# Editor and OS metadata
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
