@@ -194,14 +194,16 @@ func TestListDisbursementsHTTP(t *testing.T) {
 		wantTotal  int64
 		wantPage   int64
 		wantLimit  int64
+		wantPages  int64
 		wantError  string
 	}{
-		{name: "default_pagination", wantStatus: http.StatusOK, wantCount: 3, wantTotal: 3, wantPage: 1, wantLimit: 10},
-		{name: "pending_status_filter", query: "?status=PENDING", wantStatus: http.StatusOK, wantCount: 1, wantTotal: 1, wantPage: 1, wantLimit: 10},
-		{name: "recipient_search", query: "?search=Budi", wantStatus: http.StatusOK, wantCount: 2, wantTotal: 2, wantPage: 1, wantLimit: 10},
+		{name: "default_pagination", wantStatus: http.StatusOK, wantCount: 3, wantTotal: 3, wantPage: 1, wantLimit: 10, wantPages: 1},
+		{name: "pending_status_filter", query: "?status=PENDING", wantStatus: http.StatusOK, wantCount: 1, wantTotal: 1, wantPage: 1, wantLimit: 10, wantPages: 1},
+		{name: "recipient_search", query: "?search=Budi", wantStatus: http.StatusOK, wantCount: 2, wantTotal: 2, wantPage: 1, wantLimit: 10, wantPages: 1},
+		{name: "total_pages_rounds_up", query: "?limit=2", wantStatus: http.StatusOK, wantCount: 2, wantTotal: 3, wantPage: 1, wantLimit: 2, wantPages: 2},
 		{name: "zero_limit", query: "?limit=0", wantStatus: http.StatusUnprocessableEntity, wantError: "limit must be between 1 and 100"},
 		{name: "negative_limit", query: "?limit=-1", wantStatus: http.StatusUnprocessableEntity, wantError: "limit must be between 1 and 100"},
-		{name: "page_far_beyond_results", query: "?page=999999", wantStatus: http.StatusOK, wantCount: 0, wantTotal: 3, wantPage: 999999, wantLimit: 10},
+		{name: "page_far_beyond_results", query: "?page=999999", wantStatus: http.StatusOK, wantCount: 0, wantTotal: 3, wantPage: 999999, wantLimit: 10, wantPages: 1},
 	}
 
 	for _, tt := range tests {
@@ -223,6 +225,7 @@ func TestListDisbursementsHTTP(t *testing.T) {
 			assert.Equal(t, fmt.Sprint(tt.wantTotal), response.Meta["total"].String())
 			assert.Equal(t, fmt.Sprint(tt.wantPage), response.Meta["page"].String())
 			assert.Equal(t, fmt.Sprint(tt.wantLimit), response.Meta["limit"].String())
+			assert.Equal(t, fmt.Sprint(tt.wantPages), response.Meta["total_pages"].String())
 		})
 	}
 }

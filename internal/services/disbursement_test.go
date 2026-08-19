@@ -16,6 +16,8 @@ type mockDisbursementRepository struct {
 	mock.Mock
 }
 
+var benchmarkAdminFee int64
+
 func (m *mockDisbursementRepository) Create(d *models.Disbursement) error {
 	args := m.Called(d)
 	return args.Error(0)
@@ -224,4 +226,14 @@ func TestDisbursementServiceUpdateStatus(t *testing.T) {
 		assert.Nil(t, got)
 		repo.AssertExpectations(t)
 	})
+}
+
+func BenchmarkCalculateAdminFee(b *testing.B) {
+	amounts := [...]int64{0, 9_999, 4_999_999, 5_000_000, 10_000_000, math.MaxInt64}
+	b.ReportAllocs()
+	var fee int64
+	for i := 0; i < b.N; i++ {
+		fee = CalculateAdminFee(amounts[i%len(amounts)])
+	}
+	benchmarkAdminFee = fee
 }
