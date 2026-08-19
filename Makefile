@@ -1,4 +1,4 @@
-.PHONY: test test-unit test-integration coverage run tidy
+.PHONY: test test-unit test-integration test-race coverage run tidy lint
 
 run:
 	go run cmd/main.go
@@ -14,6 +14,9 @@ test-unit:
 
 test-integration:
 	go test ./internal/handlers/... -v -count=1
+
+test-race:
+	go test -race ./... -count=1
 
 coverage:
 	go test ./... -coverprofile=coverage.out -count=1

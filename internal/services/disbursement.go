@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"example.com/disbursement/internal/models"
 	"example.com/disbursement/internal/repository"
+	"github.com/google/uuid"
 )
 
 var (
@@ -20,6 +20,10 @@ var (
 
 type DisbursementService struct {
 	repo repository.DisbursementRepository
+}
+
+type atomicStatusUpdater interface {
+	UpdateIfStatus(d *models.Disbursement, expected models.DisbursementStatus) (bool, error)
 }
 
 func NewDisbursementService(repo repository.DisbursementRepository) *DisbursementService {
@@ -48,8 +52,14 @@ func ValidateStatusTransition(current, next models.DisbursementStatus) error {
 }
 
 func (s *DisbursementService) Create(req models.CreateDisbursementRequest, createdBy string) (*models.Disbursement, error) {
-	if req.RecipientName == "" || req.AccountNumber == "" || req.BankCode == "" {
-		return nil, ErrMissingField
+	if req.RecipientName == "" {
+		return nil, fmt.Errorf("%w: recipient_name", ErrMissingField)
+	}
+	if req.AccountNumber == "" {
+		return nil, fmt.Errorf("%w: account_number", ErrMissingField)
+	}
+	if req.BankCode == "" {
+		return nil, fmt.Errorf("%w: bank_code", ErrMissingField)
 	}
 	if req.Amount < 10_000 {
 		return nil, ErrInvalidAmount
@@ -85,10 +95,22 @@ func (s *DisbursementService) UpdateStatus(id string, req models.UpdateStatusReq
 		return nil, err
 	}
 
+	previousStatus := d.Status
 	d.Status = req.Status
 	d.ApprovedBy = approvedBy
 	d.Note = req.Note
 	d.UpdatedAt = time.Now()
+
+	if updater, ok := s.repo.(atomicStatusUpdater); ok {
+		updated, err := updater.UpdateIfStatus(d, previousStatus)
+		if err != nil {
+			return nil, err
+		}
+		if !updated {
+			return nil, ErrFinalStatus
+		}
+		return d, nil
+	}
 
 	if err := s.repo.Update(d); err != nil {
 		return nil, err

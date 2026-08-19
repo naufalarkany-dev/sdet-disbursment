@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/gin-gonic/gin"
 	"example.com/disbursement/internal/models"
 	"example.com/disbursement/internal/services"
+	"github.com/gin-gonic/gin"
 )
 
 func (h *Handler) CreateDisbursement(c *gin.Context) {
@@ -79,8 +79,22 @@ func (h *Handler) UpdateDisbursementStatus(c *gin.Context) {
 }
 
 func (h *Handler) ListDisbursements(c *gin.Context) {
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if err != nil || page < 1 {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"success": false,
+			"message": "page must be a positive integer",
+		})
+		return
+	}
+	limit, err := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	if err != nil || limit < 1 || limit > 100 {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"success": false,
+			"message": "limit must be between 1 and 100",
+		})
+		return
+	}
 
 	params := models.ListDisbursementParams{
 		Page:   page,
@@ -98,8 +112,8 @@ func (h *Handler) ListDisbursements(c *gin.Context) {
 		return
 	}
 
-	totalPages := int(total) / limit
-	if limit > 0 && int(total)%limit != 0 {
+	totalPages := total / int64(limit)
+	if total%int64(limit) != 0 {
 		totalPages++
 	}
 

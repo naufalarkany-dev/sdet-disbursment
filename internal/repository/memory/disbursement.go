@@ -87,6 +87,23 @@ func (r *DisbursementRepository) Update(d *models.Disbursement) error {
 	return nil
 }
 
+// UpdateIfStatus atomically updates a disbursement only when its stored status
+// still matches the status observed by the caller.
+func (r *DisbursementRepository) UpdateIfStatus(d *models.Disbursement, expected models.DisbursementStatus) (bool, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	current, ok := r.data[d.ID]
+	if !ok {
+		return false, errors.New("not found")
+	}
+	if current.Status != expected {
+		return false, nil
+	}
+	copy := *d
+	r.data[d.ID] = &copy
+	return true, nil
+}
+
 // Reset menghapus semua data. Gunakan di test cleanup (t.Cleanup atau defer).
 func (r *DisbursementRepository) Reset() {
 	r.mu.Lock()
